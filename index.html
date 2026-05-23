@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An interactive EQAO school performance analytics dashboard for Waterloo Region parents, comparing WRDSB and WCDSB schools against Ontario averages.">
+  <title>Waterloo Region EQAO Analytics Hub</title>
+
+  <!-- Leaflet CSS for Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Premium Header -->
+    <header>
+      <div class="brand-section">
+        <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <div>
+          <h1>Waterloo Region EQAO Analytics</h1>
+          <div class="subtitle">Interactive Parent Portal • Public & Catholic Schools Comparison</div>
+        </div>
+      </div>
+      
+      <!-- Responsive Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="dashboard"><i class="fa-solid fa-grid-2"></i> Dashboard</button>
+        <button class="tab-btn" data-tab="map" id="map-tab-btn"><i class="fa-solid fa-map-location-dot"></i> School Finder Map</button>
+        <button class="tab-btn" data-tab="compare"><i class="fa-solid fa-code-compare"></i> Compare Schools</button>
+        <button class="tab-btn" data-tab="data"><i class="fa-solid fa-database"></i> Data & Exports</button>
+      </nav>
+    </header>
+
+    <!-- MAIN APP CANVAS -->
+    <main>
+      
+      <!-- TAB 1: DASHBOARD -->
+      <section id="dashboard" class="tab-content active">
+        
+        <!-- Controls & Filters -->
+        <div class="glass-panel">
+          <div class="filter-bar">
+            
+            <div class="control-group">
+              <label for="board-filter">School Board</label>
+              <select id="board-filter" class="control-select">
+                <option value="ALL">All Waterloo Boards (WRDSB & WCDSB)</option>
+                <option value="WRDSB">WRDSB (Waterloo Public)</option>
+                <option value="WCDSB">WCDSB (Waterloo Catholic)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="level-filter">Grade Level</label>
+              <select id="level-filter" class="control-select">
+                <option value="Secondary">Secondary Schools (Grade 9 & 10)</option>
+                <option value="Elementary">Elementary Schools (Grade 3 & 6)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="school-search">Search School</label>
+              <div style="position: relative;">
+                <input type="text" id="school-search" class="control-input" placeholder="Type school name..." style="width: 100%;">
+                <div id="search-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; z-index: 100; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5);"></div>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label for="year-filter">EQAO School Year</label>
+              <select id="year-filter" class="control-select">
+                <option value="2024-2025" selected>2024-2025 (Latest)</option>
+                <option value="2023-2024">2023-2024</option>
+                <option value="2022-2023">2022-2023</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Selected School Title & Quick Stats -->
+        <div class="glass-panel" id="school-overview-banner" style="border-left: 4px solid var(--accent-indigo);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <span id="school-board-badge" class="school-board-tag" style="background: var(--accent-indigo-glow); color: var(--accent-indigo); font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 6px;">WRDSB</span>
+              <h2 id="current-school-title" style="font-family: var(--font-display); font-size: 1.8rem; margin: 0.5rem 0 0.25rem 0;">Laurel Heights Secondary School</h2>
+              <p id="current-school-address" style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fa-solid fa-location-dot"></i> 650 Laurelwood Dr, Waterloo, ON</p>
+            </div>
+            <div style="text-align: right;">
+              <span class="stat-unit" style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Enrolment Context</span>
+              <div id="current-school-enrolment" style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--accent-cyan);">~1,650 Students</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="summary-cards" id="stats-container">
+          <!-- Dynamic cards populated by JS based on Elementary/Secondary -->
+        </div>
+
+        <!-- Chart Grid & Rankings -->
+        <div class="chart-grid">
+          
+          <!-- EQAO Charts -->
+          <div class="glass-panel">
+            <div class="chart-header">
+              <div class="chart-title">
+                <i class="fa-solid fa-chart-simple" style="color: var(--accent-indigo);"></i>
+                <span id="main-chart-title">School Performance vs. Benchmarks</span>
+              </div>
+              <div class="control-group" id="subject-selector-wrapper">
+                <!-- Dropdown populated by JS based on panel level -->
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="dashboardChart"></canvas>
+            </div>
+          </div>
+
+          <!-- School Leaderboards -->
+          <div class="glass-panel">
+            <div class="chart-header">
+              <div class="chart-title">
+                <i class="fa-solid fa-award" style="color: var(--accent-amber);"></i>
+                <span>Waterloo Region Leaders</span>
+              </div>
+              <span style="font-size: 0.75rem; color: var(--text-muted);" id="leaderboard-metric-label">Grade 9 Math</span>
+            </div>
+            <div class="leaderboard-list" id="leaderboard-container">
+              <!-- Rendered Dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- TAB 2: INTERACTIVE MAP -->
+      <section id="map" class="tab-content">
+        <div class="glass-panel" style="margin-bottom: 1rem;">
+          <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-map-location-dot" style="color: var(--accent-cyan);"></i> School Finder & Interactive Map</h2>
+          <p class="info-desc">Search schools geographically. Pins are color-coded: <span style="color: var(--accent-emerald); font-weight: 700;">Green</span> represents schools outperforming provincial standard averages, <span style="color: var(--accent-indigo); font-weight: 700;">Indigo</span> indicates developing, and <span style="color: var(--accent-amber); font-weight: 700;">Yellow/Orange</span> highlights on-par achievements. Click a pin to instantly load its EQAO dashboard profile.</p>
+        </div>
+
+        <div class="map-layout">
+          <!-- Sidebar school list -->
+          <div class="map-sidebar glass-panel">
+            <div class="control-group">
+              <input type="text" id="map-search" class="control-input" placeholder="Quick filter map list...">
+            </div>
+            <div id="map-schools-list" style="display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;">
+              <!-- Dynamic mini school cards -->
+            </div>
+          </div>
+
+          <!-- Leaflet Canvas -->
+          <div id="map-canvas" class="map-canvas"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: COMPARE WORKSPACE -->
+      <section id="compare" class="tab-content">
+        <div class="glass-panel">
+          <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-code-compare" style="color: var(--accent-indigo);"></i> Multi-School Comparison Engine</h2>
+          <p class="info-desc">Add up to 3 Waterloo Region schools side-by-side to directly compare EQAO results, year-over-year gains, and gaps against Ontario provincial standards.</p>
+        </div>
+
+        <div class="compare-hub">
+          <!-- Selection Pool -->
+          <div class="glass-panel">
+            <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 1rem;"><i class="fa-solid fa-plus" style="color: var(--accent-cyan);"></i> Select Schools to Add</h3>
+            <div class="control-group" style="margin-bottom: 0.75rem;">
+              <select id="compare-level-filter" class="control-select">
+                <option value="Secondary">Secondary Schools</option>
+                <option value="Elementary">Elementary Schools</option>
+              </select>
+            </div>
+            <div class="control-group" style="margin-bottom: 1rem;">
+              <input type="text" id="compare-search" class="control-input" placeholder="Search schools to compare...">
+            </div>
+            <div class="school-pool" id="compare-selection-pool">
+              <!-- Dynamically populated school buttons -->
+            </div>
+          </div>
+
+          <!-- Comparison Results -->
+          <div class="compare-workspace">
+            <div class="glass-panel" style="flex: 1;">
+              <div class="chart-header">
+                <h3 style="font-family: var(--font-display); font-size: 1.1rem;"><i class="fa-solid fa-sliders" style="color: var(--accent-amber);"></i> Selected Comparison Panel</h3>
+                <div class="control-group">
+                  <select id="compare-subject-select" class="control-select">
+                    <!-- Populated Dynamically -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Side-by-Side Cards -->
+              <div class="active-comparison-cards" id="active-comparison-cards">
+                <!-- Comparison placeholder if empty -->
+                <div class="compare-placeholder" id="compare-empty-state">
+                  <div class="placeholder-icon"><i class="fa-solid fa-code-compare"></i></div>
+                  <h4>No Schools Selected</h4>
+                  <p>Click "Add to Compare" in the left panel to begin side-by-side analysis.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comparison Chart overlay -->
+            <div class="glass-panel" id="comparison-chart-card" style="display: none;">
+              <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 1rem;"><i class="fa-solid fa-chart-line" style="color: var(--accent-cyan);"></i> EQAO Historical Growth Comparison</h3>
+              <div class="chart-canvas-container" style="height: 280px;">
+                <canvas id="comparisonChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: DATA HUB -->
+      <section id="data" class="tab-content">
+        <div class="data-panel-grid">
+          
+          <!-- Information Source -->
+          <div class="glass-panel">
+            <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-info" style="color: var(--accent-cyan);"></i> EQAO Dataset & Methodologies</h2>
+            <p class="info-desc">This analytics project combines educational statistics from public and Catholic schools across Waterloo Region. Key data layers include:</p>
+            
+            <ul class="bullet-list">
+              <li><strong>EQAO Standard Results:</strong> Sourced from the Education Quality and Accountability Office (eqao.com) for Grades 3, 6, 9 and OSSLT, outlining percentage of students meeting or exceeding provincial standard (Levels 3 & 4).</li>
+              <li><strong>Ontario School Information System (OnSIS):</strong> Supplies student school-level enrollment counts and board boundaries.</li>
+              <li><strong>WRDSB Open Data Catalog:</strong> Provides spatial location data, panel listings, and metadata.</li>
+              <li><strong>Statistics Canada:</strong> Integrates local family income percentiles to help contextualize achievements.</li>
+            </ul>
+
+            <h3 style="font-family: var(--font-display); font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Data Disclaimers</h3>
+            <p class="info-desc" style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted);">
+              EQAO scores represent a single, focused indicator of school academic benchmarks. Educational researchers suggest evaluating EQAO results in combination with local course success metrics, student demographics, extracurricular opportunities, and specific literacy and mathematics multi-year action plans.
+            </p>
+          </div>
+
+          <!-- Raw Data Management (Vibe Code!) -->
+          <div class="glass-panel">
+            <h2 style="font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.75rem;"><i class="fa-solid fa-pen-to-square" style="color: var(--accent-indigo);"></i> School Database Customizer</h2>
+            <p class="info-desc">View, edit, or copy the entire underlying JSON database. Paste new values or custom schools to dynamically update the dashboard in real-time!</p>
+            
+            <textarea class="data-textarea" id="raw-json-editor" spellcheck="false"></textarea>
+            
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn-primary" id="btn-import-json"><i class="fa-solid fa-floppy-disk"></i> Apply JSON Updates</button>
+              <button class="btn-secondary" id="btn-reset-json"><i class="fa-solid fa-rotate-left"></i> Reset to Default</button>
+            </div>
+            <div id="json-feedback" style="margin-top: 0.75rem; font-size: 0.8rem; font-weight: 500;"></div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Global Footer -->
+    <footer>
+      <p>© 2026 Waterloo Region School EQAO Parent Portal. Designed for public use. Data layers refreshed: December 2025.</p>
+      <p>Data sources: <a href="https://www.eqao.com" target="_blank">Education Quality and Accountability Office (EQAO)</a> • <a href="https://www.wrdsb.ca" target="_blank">WRDSB.ca</a> • Statistics Canada</p>
+    </footer>
+
+  </div>
+
+  <!-- CDN scripts -->
+  <!-- Chart.js for beautiful charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Leaflet.js for interactive mapping -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Data Script -->
+  <script src="data.js"></script>
+
+  <!-- Core App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
