@@ -643,6 +643,40 @@ const SCHOOLS_DATA = [
       }
     }
   },
+  {
+    name: "Bridgeport Public School",
+    board: "WRDSB",
+    level: "Elementary",
+    coordinates: [43.4831, -80.4651],
+    address: "90 Bridge St W, Kitchener, ON N2K 1K9",
+    enrollment: 350,
+    eqao: {
+      "2022-2023": {
+        "Grade 3 Reading": 70,
+        "Grade 3 Writing": 61,
+        "Grade 3 Mathematics": 58,
+        "Grade 6 Reading": 82,
+        "Grade 6 Writing": 81,
+        "Grade 6 Mathematics": 49
+      },
+      "2023-2024": {
+        "Grade 3 Reading": 69,
+        "Grade 3 Writing": 60,
+        "Grade 3 Mathematics": 59,
+        "Grade 6 Reading": 81,
+        "Grade 6 Writing": 80,
+        "Grade 6 Mathematics": 50
+      },
+      "2024-2025": {
+        "Grade 3 Reading": 71,
+        "Grade 3 Writing": 62,
+        "Grade 3 Mathematics": 61,
+        "Grade 6 Reading": 83,
+        "Grade 6 Writing": 82,
+        "Grade 6 Mathematics": 51
+      }
+    }
+  },
 
   // ==================== ELEMENTARY SCHOOLS (WCDSB) ====================
   {
