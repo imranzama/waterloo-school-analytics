@@ -236,7 +236,53 @@ function setupSubjectDropdown() {
 function initAutocomplete() {
   const searchInput = document.getElementById("school-search");
   const suggestionsBox = document.getElementById("search-suggestions");
+  const searchBtn = document.getElementById("school-search-btn");
 
+  function triggerSearch(val) {
+    const value = val.toLowerCase().trim();
+    if (!value) return;
+
+    // Search across ALL schools globally (no level/board constraints!)
+    const match = APP_STATE.schools.find(school => school.name.toLowerCase().includes(value));
+    if (match) {
+      selectSchoolGlobally(match);
+    } else {
+      alert(`No school matching "${val}" was found in the Waterloo Region database.`);
+    }
+  }
+
+  function selectSchoolGlobally(school) {
+    APP_STATE.selectedSchoolName = school.name;
+    searchInput.value = school.name;
+    suggestionsBox.style.display = "none";
+
+    // Dynamic switch filters to match selected school's context
+    APP_STATE.selectedLevel = school.level;
+    document.getElementById("level-filter").value = school.level;
+    
+    // Reset board filter if it doesn't match and isn't set to ALL
+    const boardFilter = document.getElementById("board-filter");
+    if (boardFilter.value !== "ALL" && boardFilter.value !== school.board) {
+      boardFilter.value = "ALL";
+    }
+
+    // Set logical subject defaults for that level
+    if (school.level === "Secondary") {
+      APP_STATE.selectedSubject = "Grade 9 Mathematics";
+    } else {
+      APP_STATE.selectedSubject = "Grade 3 Mathematics";
+    }
+
+    setupSubjectDropdown();
+    renderDashboard();
+    
+    if (APP_STATE.mapInstance) {
+      renderMapSidebar();
+      renderMapMarkers();
+    }
+  }
+
+  // Input listener for dynamic global matching (shows all matching schools across secondary & elementary!)
   searchInput.addEventListener("input", (e) => {
     const value = e.target.value.toLowerCase().trim();
     suggestionsBox.innerHTML = "";
@@ -246,12 +292,10 @@ function initAutocomplete() {
       return;
     }
 
-    const filtered = APP_STATE.schools.filter(school => {
-      const matchesBoard = getBoardFilter() === "ALL" || school.board === getBoardFilter();
-      const matchesLevel = school.level === APP_STATE.selectedLevel;
-      const matchesName = school.name.toLowerCase().includes(value);
-      return matchesBoard && matchesLevel && matchesName;
-    });
+    // Filter globally across the ENTIRE database
+    const filtered = APP_STATE.schools.filter(school => 
+      school.name.toLowerCase().includes(value)
+    );
 
     if (filtered.length === 0) {
       suggestionsBox.style.display = "none";
@@ -262,27 +306,23 @@ function initAutocomplete() {
       const item = document.createElement("div");
       item.style.padding = "0.6rem 1rem";
       item.style.cursor = "pointer";
-      item.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
+      item.style.borderBottom = "1px solid var(--card-border)";
       item.style.fontSize = "0.85rem";
       item.className = "suggestion-item";
       item.innerHTML = `
-        <div style="font-weight:600;">${school.name}</div>
-        <div style="font-size:0.75rem; color:var(--text-secondary);">${school.board} • ${school.address}</div>
+        <div style="font-weight:600; color: var(--text-primary);">${school.name}</div>
+        <div style="font-size:0.75rem; color:var(--text-secondary);">${school.board} • ${school.level} • ${school.address}</div>
       `;
 
-      // Apply Hover Effects
       item.addEventListener("mouseenter", () => {
-        item.style.background = "rgba(99, 102, 241, 0.15)";
+        item.style.background = "var(--accent-indigo-glow)";
       });
       item.addEventListener("mouseleave", () => {
         item.style.background = "transparent";
       });
 
       item.addEventListener("click", () => {
-        APP_STATE.selectedSchoolName = school.name;
-        searchInput.value = school.name;
-        suggestionsBox.style.display = "none";
-        renderDashboard();
+        selectSchoolGlobally(school);
       });
 
       suggestionsBox.appendChild(item);
@@ -291,9 +331,21 @@ function initAutocomplete() {
     suggestionsBox.style.display = "block";
   });
 
+  // Enter key support
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      triggerSearch(searchInput.value);
+    }
+  });
+
+  // Search button click support
+  searchBtn.addEventListener("click", () => {
+    triggerSearch(searchInput.value);
+  });
+
   // Close suggestions box if clicked outside
   document.addEventListener("click", (e) => {
-    if (e.target !== searchInput && e.target !== suggestionsBox) {
+    if (e.target !== searchInput && e.target !== suggestionsBox && e.target !== searchBtn) {
       suggestionsBox.style.display = "none";
     }
   });

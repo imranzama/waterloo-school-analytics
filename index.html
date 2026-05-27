@@ -74,9 +74,10 @@
 
             <div class="control-group">
               <label for="school-search">Search School</label>
-              <div style="position: relative;">
-                <input type="text" id="school-search" class="control-input" placeholder="Type school name..." style="width: 100%;">
-                <div id="search-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; z-index: 100; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5);"></div>
+              <div style="position: relative; display: flex; gap: 0.5rem;">
+                <input type="text" id="school-search" class="control-input" placeholder="Type school name..." style="flex: 1; min-width: 150px;">
+                <button id="school-search-btn" class="btn-primary" style="padding: 0.65rem 1.1rem; border-radius: 10px;" title="Search School"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <div id="search-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--card-border); border-radius: 8px; z-index: 100; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);"></div>
               </div>
             </div>
 
