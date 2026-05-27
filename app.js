@@ -15,11 +15,13 @@ let APP_STATE = {
   dashboardChart: null,
   comparisonChart: null,
   mapInstance: null,
+  mapTileLayer: null,
   mapMarkers: []
 };
 
 // --- Initializing State and Event Hookups ---
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   initDatabase();
   initNavigation();
   initFilters();
@@ -36,6 +38,63 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(initMap, 150);
   });
 });
+
+// --- Theme Manager ---
+function initTheme() {
+  const toggleBtn = document.getElementById("theme-toggle-btn");
+  const currentTheme = localStorage.getItem("app-theme") || "light"; // default to light theme
+  
+  setTheme(currentTheme);
+
+  toggleBtn.addEventListener("click", () => {
+    const activeTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    setTheme(activeTheme);
+  });
+}
+
+function setTheme(theme) {
+  const toggleBtn = document.getElementById("theme-toggle-btn");
+  const icon = toggleBtn.querySelector("i");
+
+  if (theme === "light") {
+    document.documentElement.setAttribute("data-theme", "light");
+    icon.className = "fa-solid fa-sun";
+    toggleBtn.title = "Switch to Dark Mode";
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    icon.className = "fa-solid fa-moon";
+    toggleBtn.title = "Switch to Light Mode";
+  }
+  
+  localStorage.setItem("app-theme", theme);
+  
+  // Dynamically update map tile layers if loaded
+  updateMapTiles(theme);
+  
+  // Refresh active charts to update label/grid colors
+  if (APP_STATE.dashboardChart) {
+    renderDashboardCharts();
+  }
+  if (APP_STATE.comparisonChart) {
+    const subjectSelect = document.getElementById("compare-subject-select");
+    const subject = subjectSelect ? subjectSelect.value : "Grade 9 Mathematics";
+    renderComparisonCharts(subject);
+  }
+}
+
+function updateMapTiles(theme) {
+  if (!APP_STATE.mapInstance || !APP_STATE.mapTileLayer) return;
+  
+  const tileUrl = theme === "light" 
+    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+    
+  APP_STATE.mapInstance.removeLayer(APP_STATE.mapTileLayer);
+  APP_STATE.mapTileLayer = L.tileLayer(tileUrl, {
+    attribution: '© <a href="https://carto.com/">CARTO</a> • Data: EQAO, WRDSB',
+    maxZoom: 19
+  }).addTo(APP_STATE.mapInstance);
+}
 
 // --- Database & Storage Operations ---
 function initDatabase() {
@@ -349,6 +408,16 @@ function renderDashboardCharts() {
   schoolGradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
   schoolGradient.addColorStop(1, "rgba(99, 102, 241, 0.0)");
 
+  const theme = localStorage.getItem("app-theme") || "light";
+  const isLight = theme === "light";
+  
+  const textColor = isLight ? "#475569" : "#94a3b8";
+  const tickColor = isLight ? "#475569" : "#64748b";
+  const gridColor = isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.03)";
+  const tooltipBg = isLight ? "#ffffff" : "#1e293b";
+  const tooltipText = isLight ? "#0f172a" : "#f8fafc";
+  const tooltipBorder = isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)";
+
   APP_STATE.dashboardChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -396,15 +465,15 @@ function renderDashboardCharts() {
       plugins: {
         legend: {
           labels: {
-            color: "#94a3b8",
+            color: textColor,
             font: { family: "'Outfit', sans-serif", size: 12 }
           }
         },
         tooltip: {
-          backgroundColor: "#1e293b",
-          titleColor: "#ffffff",
-          bodyColor: "#f8fafc",
-          borderColor: "rgba(255,255,255,0.08)",
+          backgroundColor: tooltipBg,
+          titleColor: tooltipText,
+          bodyColor: tooltipText,
+          borderColor: tooltipBorder,
           borderWidth: 1,
           padding: 10,
           displayColors: true
@@ -414,9 +483,9 @@ function renderDashboardCharts() {
         y: {
           min: 40,
           max: 100,
-          grid: { color: "rgba(255,255,255,0.03)" },
+          grid: { color: gridColor },
           ticks: {
-            color: "#64748b",
+            color: tickColor,
             font: { family: "'Inter', sans-serif" },
             callback: value => value + "%"
           }
@@ -424,7 +493,7 @@ function renderDashboardCharts() {
         x: {
           grid: { display: false },
           ticks: {
-            color: "#64748b",
+            color: tickColor,
             font: { family: "'Inter', sans-serif" }
           }
         }
@@ -502,8 +571,13 @@ function initMap() {
   // Center map on Waterloo Region (Kitchener/Waterloo coordinate node)
   APP_STATE.mapInstance = L.map("map-canvas").setView([43.4643, -80.5204], 12);
 
-  // Apply dark mode theme basemap tiles
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  const theme = localStorage.getItem("app-theme") || "light";
+  const tileUrl = theme === "light" 
+    ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+  // Apply responsive basemap tiles
+  APP_STATE.mapTileLayer = L.tileLayer(tileUrl, {
     attribution: '© <a href="https://carto.com/">CARTO</a> • Data: EQAO, WRDSB',
     maxZoom: 19
   }).addTo(APP_STATE.mapInstance);
@@ -816,6 +890,16 @@ function renderComparisonCharts(subject) {
   const years = ["2022-2023", "2023-2024", "2024-2025"];
   const colorMap = ["#6366f1", "#06b6d4", "#10b981"]; // Indigo, Cyan, Emerald
 
+  const theme = localStorage.getItem("app-theme") || "light";
+  const isLight = theme === "light";
+  
+  const textColor = isLight ? "#475569" : "#94a3b8";
+  const tickColor = isLight ? "#475569" : "#64748b";
+  const gridColor = isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.03)";
+  const tooltipBg = isLight ? "#ffffff" : "#1e293b";
+  const tooltipText = isLight ? "#0f172a" : "#f8fafc";
+  const tooltipBorder = isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.08)";
+
   const datasets = APP_STATE.comparisonList.map((schoolName, index) => {
     const school = APP_STATE.schools.find(s => s.name === schoolName);
     const scores = years.map(yr => school.eqao[yr]?.[subject] || null);
@@ -865,12 +949,16 @@ function renderComparisonCharts(subject) {
         legend: {
           position: "bottom",
           labels: {
-            color: "#94a3b8",
+            color: textColor,
             font: { family: "'Outfit', sans-serif" }
           }
         },
         tooltip: {
-          backgroundColor: "#1e293b",
+          backgroundColor: tooltipBg,
+          titleColor: tooltipText,
+          bodyColor: tooltipText,
+          borderColor: tooltipBorder,
+          borderWidth: 1,
           padding: 8
         }
       },
@@ -878,15 +966,15 @@ function renderComparisonCharts(subject) {
         y: {
           min: 40,
           max: 100,
-          grid: { color: "rgba(255,255,255,0.03)" },
+          grid: { color: gridColor },
           ticks: {
-            color: "#64748b",
+            color: tickColor,
             callback: val => val + "%"
           }
         },
         x: {
           grid: { display: false },
-          ticks: { color: "#64748b" }
+          ticks: { color: tickColor }
         }
       }
     }

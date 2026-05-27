@@ -29,13 +29,20 @@
         </div>
       </div>
       
-      <!-- Responsive Navigation Tabs -->
-      <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="dashboard"><i class="fa-solid fa-grid-2"></i> Dashboard</button>
-        <button class="tab-btn" data-tab="map" id="map-tab-btn"><i class="fa-solid fa-map-location-dot"></i> School Finder Map</button>
-        <button class="tab-btn" data-tab="compare"><i class="fa-solid fa-code-compare"></i> Compare Schools</button>
-        <button class="tab-btn" data-tab="data"><i class="fa-solid fa-database"></i> Data & Exports</button>
-      </nav>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        
+        <!-- Responsive Navigation Tabs -->
+        <nav class="nav-tabs">
+          <button class="tab-btn active" data-tab="dashboard"><i class="fa-solid fa-grid-2"></i> Dashboard</button>
+          <button class="tab-btn" data-tab="map" id="map-tab-btn"><i class="fa-solid fa-map-location-dot"></i> School Finder Map</button>
+          <button class="tab-btn" data-tab="compare"><i class="fa-solid fa-code-compare"></i> Compare Schools</button>
+          <button class="tab-btn" data-tab="data"><i class="fa-solid fa-database"></i> Data & Exports</button>
+        </nav>
+      </div>
     </header>
 
     <!-- MAIN APP CANVAS -->
