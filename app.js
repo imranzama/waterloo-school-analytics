@@ -101,7 +101,29 @@ function initDatabase() {
   const storedData = localStorage.getItem("waterloo_school_db");
   if (storedData) {
     try {
-      APP_STATE.schools = JSON.parse(storedData);
+      let parsed = JSON.parse(storedData);
+      
+      // Auto merge any new default schools added to SCHOOLS_DATA (like Bridgeport)
+      if (Array.isArray(parsed)) {
+        let updated = false;
+        const parsedNames = parsed.map(s => s.name);
+        
+        SCHOOLS_DATA.forEach(school => {
+          if (!parsedNames.includes(school.name)) {
+            parsed.push(school);
+            updated = true;
+          }
+        });
+        
+        if (updated) {
+          localStorage.setItem("waterloo_school_db", JSON.stringify(parsed));
+        }
+      } else {
+        parsed = [...SCHOOLS_DATA];
+        localStorage.setItem("waterloo_school_db", JSON.stringify(parsed));
+      }
+      
+      APP_STATE.schools = parsed;
     } catch (e) {
       console.error("Failed to parse local storage DB. Resetting to defaults.", e);
       APP_STATE.schools = [...SCHOOLS_DATA];
